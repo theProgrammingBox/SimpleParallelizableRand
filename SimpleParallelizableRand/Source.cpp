@@ -2,58 +2,45 @@
 #include <time.h>
 #include <stdint.h>
 
-typedef uint32_t u32;
-typedef int8_t i8;
-typedef float f32;
-
-void Lehmer32(u32& x)
+void HashSeeds(uint32_t& seed1, uint32_t& seed2)
 {
-	x *= 0xBAC57D37;
-	x ^= x >> 16;
-	x *= 0x24F66AC9;
-	x ^= x >> 16;
+	seed1 ^= seed2;
+	seed1 *= 0xBAC57D37;
+	seed2 ^= seed1;
+	seed2 *= 0x24F66AC9;
 }
 
-void FourF32Rands(u32 idx, u32 seed1, u32 seed2, f32* fourF32s)
+void HashIdx(uint32_t idx, uint32_t seed1, uint32_t seed2, float& hash)
 {
-	idx ^= seed1;
-	Lehmer32(idx);
-	idx ^= seed2;
+	uint32_t HashSeeds = idx;
 
-	fourF32s[0] = i8(idx & 0xFF) * 0.0078125f;
-	fourF32s[1] = i8(idx >> 8 & 0xFF) * 0.0078125f;
-	fourF32s[2] = i8(idx >> 16 & 0xFF) * 0.0078125f;
-	fourF32s[3] = i8(idx >> 24) * 0.0078125f;
+	HashSeeds ^= seed1;
+	HashSeeds *= 0xBAC57D37;
+	HashSeeds ^= seed2;
+	HashSeeds *= 0x24F66AC9;
+
+	hash = int32_t(HashSeeds) * 0.0000000004656612875245796f;
+	//hash = uint32_t(HashSeeds) * 0.0000000002328306437622898f;
 }
 
 int main()
 {
-	const u32 WIDTH = 1440;
-	const u32 HEIGHT = 810;
-
-	f32 fourF32s[4];
-
-	u32 seed1 = time(NULL) ^ 0xE621B963;
-	Lehmer32(seed1);
-	u32 seed2 = seed1 ^ 0x6053653F;
-	Lehmer32(seed2);
+	uint32_t seed1 = time(NULL) ^ 0xE621B963;
+	uint32_t seed2 = 0x6053653F ^ (time(NULL) >> 32);
 
 	printf("Seed1: %u\n", seed1);
 	printf("Seed2: %u\n\n", seed2);
 
-	while(true)
-	{
-		Lehmer32(seed1);
-		Lehmer32(seed2);
-		for (u32 x = 0; x < WIDTH; x++)
+	/*while(true)
+	{*/
+		HashSeeds(seed1, seed2);
+		float hash;
+		for (uint32_t x = 0; x < 16; x++)
 		{
-			for (u32 y = 0; y < HEIGHT; y++)
-			{
-				FourF32Rands(y * WIDTH + x, seed1, seed2, fourF32s);
-				printf("%f %f %f %f\n", fourF32s[0], fourF32s[1], fourF32s[2], fourF32s[3]);
-			}
+			HashIdx(x, seed1, seed2, hash);
+			printf("%f\n", hash);
 		}
-	}
+	//}
 
 	return 0;
 }
